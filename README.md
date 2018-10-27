@@ -219,6 +219,8 @@ modules: [
 ]
 ````
 
+Small test for Slack integration.
+
 ## Configuration options
 
 <table width="100%">
