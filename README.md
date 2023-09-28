@@ -10,8 +10,6 @@ This module uses white icons by default.  If you prefer color coded icons, merge
 
 I only tested the graph part of it, there might be some migration-problems in the forecast.
 
-![screenshot](screenshot.png)
-
 ## Using the module
 
 To use this module, add it to the modules array in the `config/config.js` file:
