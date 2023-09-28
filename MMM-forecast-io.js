@@ -2,8 +2,8 @@ Module.register("MMM-forecast-io", {
 
   defaults: {
     apiKey: "",
-    apiBase: "https://api.darksky.net/forecast",
-    units: this.config.units,
+    apiBase: "http://api.openweathermap.org/data/2.5/onecall?",
+    units: config.units,
     language: config.language,
     updateInterval: 6 * 60 * 1000, // every 5 minutes
     animationSpeed: 1000,
@@ -25,23 +25,23 @@ Module.register("MMM-forecast-io", {
     showSunrise: true,
     unitTable: {
       'default':  'auto',
-      'metric':   'si',
+      'metric':   'metric',
       'imperial': 'us'
     },
     iconTable: {
-      'clear-day':           'wi-day-sunny',
-      'clear-night':         'wi-night-clear',
-      'rain':                'wi-rain',
-      'snow':                'wi-snow',
-        'sleet':               'wi-rain-mix',
-        'wind':                'wi-cloudy-gusts',
-      'fog':                 'wi-fog',
-      'cloudy':              'wi-cloudy',
-      'partly-cloudy-day':   'wi-day-cloudy',
-      'partly-cloudy-night': 'wi-night-cloudy',
-      'hail':                'wi-hail',
-      'thunderstorm':        'wi-thunderstorm',
-      'tornado':             'wi-tornado'
+      'Clear':               'wi-day-sunny',
+      'clear night':         'wi-night-clear',
+      'few clouds':   	     'wi-day-cloudy',
+      'Clouds': 	     'wi-cloudy',
+      'broken clouds':       'wi-day-cloudy',
+      'Drizzle':             'wi-rain',
+      'Rain':                'wi-rain',
+      'Thunderstorm':        'wi-thunderstorm',
+      'Snow':                'wi-snow',
+      'Mist':                'wi-fog',
+      'Haze':                'wi-fog',
+      'Fog':                 'wi-fog',
+      'Tornado':             'wi-tornado'
     },
     debug: false
   },
@@ -87,7 +87,7 @@ Module.register("MMM-forecast-io", {
 
     var units = this.config.unitTable[this.config.units] || 'auto';
 
-    var url = this.config.apiBase+'/'+this.config.apiKey+'/'+this.config.latitude+','+this.config.longitude+'?units='+units+'&lang='+this.config.language;
+    var url = this.config.apiBase+'appid='+this.config.apiKey+'&lat='+this.config.latitude+'&lon='+this.config.longitude+'&units='+units+'&lang='+this.config.language;
     if (this.config.data) {
       // for debugging
       this.processWeather(this.config.data);
@@ -102,7 +102,8 @@ Module.register("MMM-forecast-io", {
     }
     this.loaded = true;
     this.weatherData = data;
-    this.temp = this.roundTemp(this.weatherData.currently.temperature);
+//	this.temp = Math.round(this.weatherData.current.temp);
+    this.temp = this.roundTemp(this.weatherData.current.temp);
     this.updateDom(this.config.animationSpeed);
     this.scheduleUpdate();
   },
@@ -143,7 +144,7 @@ Module.register("MMM-forecast-io", {
       return wrapper;
     }
 
-    var currentWeather = this.weatherData.currently;
+    var currentWeather = this.weatherData.current;
     var hourly         = this.weatherData.hourly;
     var minutely       = this.weatherData.minutely;
     var daily          = this.weatherData.daily;
@@ -152,8 +153,7 @@ Module.register("MMM-forecast-io", {
     var large = document.createElement("div");
     large.className = "large light";
 
-    var icon = minutely ? minutely.icon : hourly.icon;
-    var iconClass = this.config.iconTable[hourly.icon];
+    var iconClass = this.config.iconTable[this.weatherData.current.weather[0].main];
     var icon = document.createElement("span");
     icon.className = 'big-icon wi ' + iconClass;
     large.appendChild(icon);
@@ -176,7 +176,7 @@ Module.register("MMM-forecast-io", {
 
       var wind = document.createElement("span");
       wind.className = "dim";
-      wind.innerHTML = " " + Math.round(this.weatherData.currently.windSpeed) + " ";
+      wind.innerHTML = " " + Math.round(this.weatherData.current.wind_speed) + " ";
       large.appendChild(wind);
     }
 
@@ -185,16 +185,13 @@ Module.register("MMM-forecast-io", {
       var midText = document.createElement("div");
       midText.className = "light";
 
-      var today      = this.weatherData.daily.data[0];
+      var today      = this.weatherData.daily[0];
       var now        = new Date();
 
-      //if (today.sunriseTime*1000 < now && today.sunsetTime*1000 > now) {
-        var sunrise = new moment.unix(today.sunriseTime).format( "H:mm" );
+        var sunrise = new moment.unix(today.sunrise).format( "H:mm" );
         sunString = '<span class="wi wi-sunrise xdimmed"></span> ' + sunrise;
-        var sunset = new moment.unix(today.sunsetTime).format( "H:mm" );
+        var sunset = new moment.unix(today.sunset).format( "H:mm" );
         sunString += ' <span class="wi wi-sunset xdimmed"></span> '  + sunset;
-      //} else {
-      //}
 
       var sunTime = document.createElement("div");
       sunTime.className = "small dimmed summary";
@@ -205,7 +202,7 @@ Module.register("MMM-forecast-io", {
 
 // =========  summary text
     if (this.config.showSummary) {
-      var summaryText = minutely ? minutely.summary : hourly.summary;
+      var summaryText = this.weatherData.current.weather[0].description;
       var summary = document.createElement("div");
       summary.className = "small dimmed summary";
 
@@ -256,18 +253,18 @@ Module.register("MMM-forecast-io", {
     var d = new Date(0); // The 0 there is the key, which sets the date to the epoch
 
     for (i = 0; i < (36+1); i += 1) {
-      dataTempLine.push({ x: moment.unix(this.weatherData.hourly.data[i].time).format("YYYY-MM-DD HH:MM"), y: this.weatherData.hourly.data[i].temperature });
+      dataTempLine.push({ x: moment.unix(this.weatherData.hourly[i].dt).format("YYYY-MM-DD HH:MM"), y: this.weatherData.hourly[i].temp });
       if (i % 2 == 0) {
-        dataTempDots.push({ x: moment.unix(this.weatherData.hourly.data[i].time).format("YYYY-MM-DD HH:MM"), y: this.weatherData.hourly.data[i].temperature });
+        dataTempDots.push({ x: moment.unix(this.weatherData.hourly[i].dt).format("YYYY-MM-DD HH:MM"), y: this.weatherData.hourly[i].temp });
       }
-      // dataRain.push({ x: moment.unix(this.weatherData.hourly.data[i].time).format("YYYY-MM-DD HH:MM"), y: this.weatherData.hourly.data[i].precipIntensity });
-      if (this.weatherData.hourly.data[i].precipIntensity > 0) { 
-        rain = this.weatherData.hourly.data[i].precipIntensity 
+      
+      if (this.weatherData.hourly[i].rain > 0) { 
+        rain = this.weatherData.hourly[i].rain 
       } else {
         rain = null
       }
       dataRain.push({ 
-        x: moment.unix(this.weatherData.hourly.data[i].time).format("YYYY-MM-DD HH:MM"), 
+        x: moment.unix(this.weatherData.hourly[i].dt).format("YYYY-MM-DD HH:MM"), 
         y: rain
       });
     }
@@ -346,6 +343,9 @@ Module.register("MMM-forecast-io", {
               },
               stepSize: 4,
             },
+			ticks: {
+				fontSize: 30
+			},
             display: true,
             scaleLabel: {
               display: false,
@@ -364,6 +364,7 @@ Module.register("MMM-forecast-io", {
               suggestedMin: 0,
               suggestedMax: 2,
               fontColor: "blue",
+			  fontSize: 30,
               stepSize: 1,
             },
           },
@@ -371,9 +372,10 @@ Module.register("MMM-forecast-io", {
             id: 'temperature',
             position: 'left',
             ticks: {
-              suggestedMin: 10,
-              suggestedMax: 30,
+              suggestedMin: 15,
+              suggestedMax: 15,
               fontColor: "red",
+			  fontSize: 30,
               stepSize: 5,
             },
             gridLines: {
@@ -422,7 +424,7 @@ Module.register("MMM-forecast-io", {
 
     var dayTextSpan = document.createElement("span");
     dayTextSpan.className = "forecast-day"
-    dayTextSpan.innerHTML = this.getDayFromTime(data.time);
+    dayTextSpan.innerHTML = this.getDayFromTime(data.dt);
     var iconClass = this.config.iconTable[data.icon];
     var icon = document.createElement("span");
     icon.className = 'wi weathericon ' + iconClass;
