@@ -263,6 +263,15 @@ Module.register("MMM-forecast-io", {
       } else {
         rain = null
       }
+      if (this.weatherData.hourly[i+1].rain && !this.weatherData.hourly[i].rain) {
+        rain = 0
+      }
+      if (i>0) {
+        if (this.weatherData.hourly[i-1].rain && !this.weatherData.hourly[i].rain) {
+          rain = 0
+        }
+      }
+            
       dataRain.push({ 
         x: moment.unix(this.weatherData.hourly[i].dt).format("YYYY-MM-DD HH:MM"), 
         y: rain
